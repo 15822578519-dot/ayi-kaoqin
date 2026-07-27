@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  base: '/ayi-kaoqin/',
+  base: './',
   plugins: [vue()],
   server: {
     host: true,
