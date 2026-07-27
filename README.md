@@ -26,6 +26,10 @@
 ├── package.json
 ├── vite.config.js          # 开发代理 /api → 后端
 ├── index.html
+├── Dockerfile              # 生产镜像构建（node:20-alpine 单阶段）
+├── .dockerignore
+├── docker-compose.yml       # 一键部署 + 数据持久化
+├── deploy/                 # VPS 样例：nginx 反代 / systemd 单元
 ├── server/
 │   ├── index.js            # Express：API + 生产环境托管前端
 │   ├── store.js            # JSON 文件存储（带写锁）
@@ -37,10 +41,6 @@
 │   ├── api/index.js        # axios 封装
 │   ├── utils/calc.js       # 时长/工资计算 + Excel 导出
 │   └── views/              # Login / Calendar / RecordForm / Ledger / Statistics
-├── Dockerfile              # 生产镜像构建（node:20-alpine 单阶段）
-├── .dockerignore
-├── docker-compose.yml       # 一键部署 + 数据持久化
-├── deploy/                 # VPS 样例：nginx 反代 / systemd 单元
 └── data/records.json       # 运行时自动生成（考勤台账）
 ```
 
@@ -88,7 +88,11 @@ npm start          # 生产模式：同一 Node 进程托管前端 + API（默�
 
 ### 方式 B：自有 VPS / NAS / 家里常开设备（Docker，推荐）
 ```bash
-# 构建镜像并后台启动（数据挂卷持久化到 ./data）
+# 1) 准备环境变量（口令/密钥写在 .env，已被 git 忽略，不会泄露）
+cp .env.example .env
+#   然后编辑 .env：把 ACCESS_CODE / JWT_SECRET 改成你自己的值
+
+# 2) 构建并后台启动（数据挂卷持久化到 ./data）
 docker compose up -d --build
 ```
 - 访问 `http://<服务器IP>:3000`（或套一层 nginx 反代 + HTTPS，见 `deploy/nginx.conf` 样例）。
@@ -126,6 +130,6 @@ docker compose up -d --build
 > PWA 必须 **HTTPS**；本服务与常见云主机均满足。二维码内容取当前域名，部署到任何地址都会自动对应。
 
 ## 常见问题
-- **微信里打开白屏？** 微信内置浏览器一般可直接访问部署地址；若被拦截，点右上角「…」→「在浏览器打开」即可。
+- **微信里打开白屏？** 微信内置浏览器一般可直接访问部署地址；若被拦截，点右上角「…」→「在浏览器中打开」即可。
 - **数据存在哪？** 全部在 `data/records.json`，删除该文件即清空所有记录（请谨慎）。
 - **忘记口令？** 改 `ACCESS_CODE` 环境变量重启服务即可。

@@ -10,8 +10,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - ACCESS_CODE=请改成你的口令
-      - JWT_SECRET=请改成随机字符串
+      - ACCESS_CODE=${ACCESS_CODE}
+      - JWT_SECRET=${JWT_SECRET}
       - DATA_FILE=/app/data/records.json
     volumes:
       - ./data:/app/data
