@@ -1,0 +1,30 @@
+{
+  "name": "ayi-kaoqin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "家庭家政阿姨考勤 H5（家人内部使用）",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n SERVER,WEB -c blue,green \"npm:server\" \"npm:web\"",
+    "server": "node server/index.js",
+    "web": "vite",
+    "build": "vite build",
+    "start": "cross-env NODE_ENV=production node server/index.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "qrcode": "^1.5.4",
+    "vant": "^4.9.6",
+    "vue": "^3.5.10",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "concurrently": "^9.0.1",
+    "cross-env": "^7.0.3",
+    "vite": "^5.4.8"
+  }
+}

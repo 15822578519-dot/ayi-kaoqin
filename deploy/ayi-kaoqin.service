@@ -1,0 +1,28 @@
+# systemd 单元样例（裸机部署、不使用 Docker 时）
+# 用法：
+#   1) 把项目放到 /opt/ayi-kaoqin（或改下面的 WorkingDirectory）
+#   2) cd /opt/ayi-kaoqin && npm install && npm run build
+#   3) 把本文件放到 /etc/systemd/system/ayi-kaoqin.service
+#   4) 改 ACCESS_CODE / JWT_SECRET（务必自定义）
+#   5) systemctl daemon-reload && systemctl enable --now ayi-kaoqin
+#   6) 可选：用 deploy/nginx.conf 套一层 HTTPS 反代，对外只暴露 443
+
+[Unit]
+Description=阿姨考勤 H5 服务
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/ayi-kaoqin
+ExecStart=/usr/bin/npm start
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=ACCESS_CODE=请改成你的口令
+Environment=JWT_SECRET=请改成随机字符串
+Environment=DATA_FILE=/opt/ayi-kaoqin/data/records.json
+Restart=always
+RestartSec=5
+# 运行用户（需对 /opt/ayi-kaoqin/data 有写权限；可用 www-data 或自建用户）
+User=www-data
+
+[Install]
+WantedBy=multi-user.target

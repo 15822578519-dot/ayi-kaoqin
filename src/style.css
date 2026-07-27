@@ -1,0 +1,95 @@
+:root {
+  /* 温暖家居风 */
+  --brand: #f4795b;
+  --brand-deep: #e15a3c;
+  --bg: #fbf6f0;
+  --work: #07c160;
+  --absent: #ee0a24;
+  --text: #3a3330;
+  --muted: #a39188;
+  --card: #ffffff;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
+  /* 覆盖 Vant 主题色，让按钮/单选/TabBar 跟随暖色 */
+  --van-primary: #f4795b;
+  --van-tabbar-item-active-color: #f4795b;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Helvetica,
+    'Segoe UI', Arial, 'Microsoft YaHei', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* 通用卡片：圆角 + 柔和阴影 */
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(180, 130, 100, 0.1);
+}
+
+/* 状态胶囊（全局，弹窗 teleport 到 body 也需生效）*/
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.st-work {
+  background: rgba(7, 193, 96, 0.14);
+  color: var(--work);
+}
+.st-absent {
+  background: rgba(238, 10, 36, 0.12);
+  color: var(--absent);
+}
+
+.money {
+  color: var(--brand-deep);
+  font-weight: 600;
+}
+
+/* 给底部 TabBar 与悬浮按钮留出安全区 */
+.page {
+  padding-bottom: calc(64px + var(--safe-bottom));
+  min-height: 100vh;
+}
+
+/* Vant 圆角与暖色微调 */
+:root {
+  --van-button-round-border-radius: 999px;
+  --van-cell-group-inset-border-radius: 16px;
+}
+.van-cell-group--inset {
+  margin: 0;
+  overflow: hidden;
+}

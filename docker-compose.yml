@@ -1,0 +1,18 @@
+# 一键部署 + 数据持久化
+# 用法：docker compose up -d --build
+# 数据挂到宿主 ./data，重装/升级容器台账不丢。
+services:
+  ayi-kaoqin:
+    build: .
+    container_name: ayi-kaoqin
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ACCESS_CODE=请改成你的口令
+      - JWT_SECRET=请改成随机字符串
+      - DATA_FILE=/app/data/records.json
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

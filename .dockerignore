@@ -1,0 +1,9 @@
+node_modules
+dist
+data
+.codebuddy
+.git
+.gitignore
+*.log
+.env
+npm-debug.log*
