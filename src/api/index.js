@@ -1,48 +1,84 @@
-import axios from 'axios'
-import { showToast } from 'vant'
+// 纯静态版：考勤数据存在浏览器 localStorage，无需后端服务器
+// 页面（Calendar/Ledger/RecordForm/Statistics）原有的 apiXxx 调用保持不变
 
-const TOKEN_KEY = 'ayi_kaoqin_token'
+const DATA_KEY = 'ayi_kaoqin_records'
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY) || ''
-}
-export function setToken(t) {
-  localStorage.setItem(TOKEN_KEY, t)
-}
-export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY)
-}
-
-const api = axios.create({ baseURL: '/api' })
-
-// 请求自动带令牌
-api.interceptors.request.use((config) => {
-  const token = getToken()
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
-
-// 响应统一处理 401（登录过期）。登录接口本身返回 401 不改写页面。
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    const isLoginReq = err.config && err.config.url && err.config.url.includes('/login')
-    if (err.response && err.response.status === 401 && !isLoginReq) {
-      clearToken()
-      location.reload()
-    }
-    const msg = (err.response && err.response.data && err.response.data.error) || '网络错误，请重试'
-    showToast(msg)
-    return Promise.reject(err)
+function readAll() {
+  try {
+    return JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
+  } catch {
+    return []
   }
-)
+}
+function writeAll(list) {
+  localStorage.setItem(DATA_KEY, JSON.stringify(list))
+}
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
+function round2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
 
-export const apiLogin = (code) => api.post('/login', { code }).then((r) => r.data)
-export const apiList = (month) => api.get('/records', { params: { month } }).then((r) => r.data.list)
-export const apiCreate = (body) => api.post('/records', body).then((r) => r.data.record)
-export const apiUpdate = (id, body) => api.put(`/records/${id}`, body).then((r) => r.data.record)
-export const apiRemove = (id) => api.delete(`/records/${id}`).then((r) => r.data)
-export const apiSummary = (month) =>
-  api.get('/summary', { params: { month } }).then((r) => r.data)
+// 静态版无需真正的登录 token，留空函数保证 App.vue 不报错
+export function getToken() { return 'ok' }
+export function setToken() {}
+export function clearToken() {}
 
-export default api
+export function apiLogin() {
+  return Promise.resolve({ token: 'ok' })
+}
+
+export function apiList(month) {
+  const list = readAll()
+  const result = month ? list.filter((r) => (r.date || '').startsWith(month)) : list
+  result.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+  return Promise.resolve(result)
+}
+
+export function apiCreate(body) {
+  const status = body.status || 'work'
+  const salary = isFinite(Number(body.salary)) ? round2(Number(body.salary)) : (status === 'work' ? 200 : 0)
+  const record = {
+    id: genId(),
+    date: body.date,
+    status,
+    salary,
+    note: typeof body.note === 'string' ? body.note : '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  const list = readAll()
+  list.push(record)
+  writeAll(list)
+  return Promise.resolve(record)
+}
+
+export function apiUpdate(id, body) {
+  const list = readAll()
+  const idx = list.findIndex((r) => r.id === id)
+  if (idx === -1) return Promise.reject(new Error('记录不存在'))
+  const status = body.status || 'work'
+  const salary = isFinite(Number(body.salary)) ? round2(Number(body.salary)) : (status === 'work' ? 200 : 0)
+  list[idx] = { ...list[idx], date: body.date, status, salary, note: typeof body.note === 'string' ? body.note : '', id, updatedAt: new Date().toISOString() }
+  writeAll(list)
+  return Promise.resolve(list[idx])
+}
+
+export function apiRemove(id) {
+  const list = readAll()
+  const next = list.filter((r) => r.id !== id)
+  if (next.length === list.length) return Promise.reject(new Error('记录不存在'))
+  writeAll(next)
+  return Promise.resolve({ ok: true })
+}
+
+export function apiSummary(month) {
+  const list = month ? readAll().filter((r) => (r.date || '').startsWith(month)) : readAll()
+  const totalSalary = round2(list.reduce((s, r) => s + (Number(r.salary) || 0), 0))
+  const workDays = list.filter((r) => (r.status || 'work') === 'work').length
+  const absentDays = list.filter((r) => (r.status || 'work') === 'absent').length
+  return Promise.resolve({ totalSalary, workDays, absentDays, count: list.length })
+}
+
+export default { getToken, setToken, clearToken, apiLogin, apiList, apiCreate, apiUpdate, apiRemove, apiSummary }
