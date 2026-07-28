@@ -13,16 +13,22 @@ function decodeB64(str) { const bin = atob(str); const bytes = new Uint8Array(bi
 let _sha = ''
 
 async function fetchRemote() {
+  const local = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
   try {
     const res = await fetch(API, { headers: { Authorization: `token ${TOKEN}`, 'Cache-Control': 'no-cache' } })
     if (!res.ok) throw new Error('github fetch failed')
     const d = await res.json()
     _sha = d.sha
-    const list = JSON.parse(decodeB64(d.content))
-    localStorage.setItem(DATA_KEY, JSON.stringify(list))
-    return list
+    const remote = JSON.parse(decodeB64(d.content))
+    // 合并：remote 和 local 按 id 去重，保留全部
+    const ids = new Set(remote.map(r => r.id))
+    const merged = [...remote, ...local.filter(r => !ids.has(r.id))]
+    localStorage.setItem(DATA_KEY, JSON.stringify(merged))
+    // 如果有本地独有数据，推回 GitHub
+    if (merged.length > remote.length) pushRemote(merged)
+    return merged
   } catch {
-    return JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
+    return local
   }
 }
 
