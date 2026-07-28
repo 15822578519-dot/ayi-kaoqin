@@ -161,12 +161,16 @@ function resolveOpenMonth() {
   return `${target}-01`
 }
 
+// 直接定位到今天或最近记录月
+defaultDate.value = new Date(resolveOpenMonth())
+loadMonth(fmt(defaultDate.value).slice(0, 7))
+
+// 页面完全渲染后再滚到正确位置
 onMounted(() => {
-  const d = resolveOpenMonth()
-  defaultDate.value = new Date(d)
-  loadMonth(d.slice(0, 7))
   nextTick(() => {
-    calendarRef.value?.scrollToDate(defaultDate.value)
+    setTimeout(() => {
+      calendarRef.value?.scrollToDate(defaultDate.value)
+    }, 200)
   })
 })
 
