@@ -13,6 +13,8 @@
 
     <button class="fab" aria-label="新增考勤" @click="openAdd()">＋</button>
 
+    <div class="sync-status">{{ syncMsg }}</div>
+
     <van-tabbar v-model="active" safe-area-inset-bottom>
       <van-tabbar-item name="calendar" icon="calendar-o">日历</van-tabbar-item>
       <van-tabbar-item name="ledger" icon="notes-o">台账</van-tabbar-item>
@@ -32,12 +34,13 @@
 </template>
 
 <script setup>
-import { ref, computed, provide } from 'vue'
+import { ref, computed, provide, onMounted } from 'vue'
 import Calendar from './views/Calendar.vue'
 import Ledger from './views/Ledger.vue'
 import Statistics from './views/Statistics.vue'
 import RecordForm from './views/RecordForm.vue'
 import ShareQR from './views/ShareQR.vue'
+import { apiList } from './api/index.js'
 
 const active = ref('calendar')
 const formVisible = ref(false)
@@ -79,6 +82,15 @@ function onSaved() {
 // 简单的刷新信号，传给子组件
 const refreshKey = ref(0)
 provide('refreshKey', refreshKey)
+
+// 同步状态
+const syncMsg = ref('正在同步...')
+onMounted(async () => {
+  try {
+    await apiList('')
+    syncMsg.value = '☁️ 云同步已连接'
+  } catch { syncMsg.value = '⚠ 同步失败，数据仅本地' }
+})
 
 // 统计页 → 日历页 的月份跳转
 const jumpMonth = ref('')
@@ -138,5 +150,16 @@ provide('nav', nav)
 }
 .fab:active {
   background: var(--brand-deep);
+}
+.sync-status {
+  text-align: center;
+  font-size: 11px;
+  color: #4caf50;
+  padding: 4px 0 0;
+  position: fixed;
+  bottom: calc(50px + var(--safe-bottom));
+  width: 100%;
+  z-index: 5;
+  pointer-events: none;
 }
 </style>
