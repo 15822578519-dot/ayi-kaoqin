@@ -2,9 +2,9 @@
   <div class="calendar-view">
     <!-- 自定义日历头部 -->
     <div class="cal-header">
-      <button class="cal-nav" @click="goMonth(-1)">‹</button>
+      <button class="cal-nav" @click="goMonth(-1)">&lt;</button>
       <span class="cal-title" @click="goToday">{{ year }}年{{ monPad }}月</span>
-      <button class="cal-nav" @click="goMonth(1)">›</button>
+      <button class="cal-nav" @click="goMonth(1)">&gt;</button>
       <button class="today-btn" @click="goToday">今天</button>
     </div>
 
@@ -13,8 +13,8 @@
       <span v-for="w in weekdays" :key="w" class="cal-wd">{{ w }}</span>
     </div>
 
-    <!-- 日期网格 -->
-    <div class="cal-grid">
+    <!-- 日期网格（支持左右滑动） -->
+    <div class="cal-grid" @touchstart="swipeStart" @touchend="swipeEnd">
       <div
         v-for="(day, i) in grid"
         :key="i"
@@ -103,14 +103,18 @@ const grid = computed(() => {
   const y = year.value
   const m = month.value
   const first = new Date(y, m, 1)
-  const startDow = first.getDay() // 0=日
+  const startDow = first.getDay()
   const daysInMonth = new Date(y, m + 1, 0).getDate()
+  const daysInPrev = new Date(y, m, 1 - 1).getDate() // 上月天数
   const cells = []
 
-  // 填充前面的空白
-  for (let i = 0; i < startDow; i++) cells.push(null)
+  // 上月溢出日期
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = daysInPrev - i
+    cells.push({ num: d, cur: false, date: '', status: null, label: null, today: false })
+  }
 
-  // 日期格子
+  // 本月
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(y, m, d)
     const ds = fmt(date)
@@ -118,25 +122,33 @@ const grid = computed(() => {
     const st = items && items.length
       ? (items.some(r => (r.status || 'work') === 'work') ? 'work' : 'absent')
       : null
-    cells.push({
-      date: ds,
-      num: d,
-      cur: true,
-      today: ds === fmt(today),
-      status: st,
-      label: st ? statusMeta(st).label : null
-    })
+    cells.push({ date: ds, num: d, cur: true, today: ds === fmt(today), status: st, label: st ? statusMeta(st).label : null })
+  }
+
+  // 下月溢出（补满行）
+  while (cells.length % 7 !== 0) {
+    const d = cells.length - cells.filter(c => c.cur).length - startDow + 1
+    cells.push({ num: d, cur: false, date: '', status: null, label: null, today: false })
   }
   return cells
 })
 
 function cellClass(day) {
-  if (!day) return 'empty'
+  if (!day || !day.cur) return 'dim'
   const c = []
   if (day.today) c.push('is-today')
   if (day.status === 'work') c.push('has-work')
   if (day.status === 'absent') c.push('has-absent')
   return c
+}
+
+// ---- 滑动手势 ----
+let touchX = 0
+function swipeStart(e) { touchX = e.touches[0].clientX }
+function swipeEnd(e) {
+  const dx = e.changedTouches[0].clientX - touchX
+  if (dx > 60) goMonth(-1)
+  if (dx < -60) goMonth(1)
 }
 
 // ---- 导航 ----
@@ -226,18 +238,20 @@ watch(() => refreshKey && refreshKey.value, () => {
   color: #3a3330;
 }
 .cal-nav {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border: none;
   background: #f5f2ef;
   border-radius: 50%;
-  font-size: 20px;
-  color: #666;
+  font-size: 22px;
+  font-weight: 600;
+  color: #555;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.cal-nav:active { background: #e8e3db; }
 .today-btn {
   margin-left: 8px;
   padding: 5px 14px;
@@ -276,8 +290,9 @@ watch(() => refreshKey && refreshKey.value, () => {
   cursor: default;
   margin: 2px;
 }
-.cal-cell.empty {
-  background: transparent;
+.cal-cell.dim {
+  color: #d5d2cc;
+  cursor: default;
 }
 .cell-num {
   font-weight: 500;
