@@ -2,14 +2,11 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  base: './',
   plugins: [vue()],
   server: {
     host: true,
-    port: 5173
+    port: 5173,
+    proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } }
   },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets'
-  }
+  build: { outDir: 'dist', assetsDir: 'assets' }
 })

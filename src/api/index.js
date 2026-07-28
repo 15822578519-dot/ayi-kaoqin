@@ -1,118 +1,24 @@
-// 数据同步：GitHub 作为中央存储 + 多通道写入
-const TOKEN = 'VHU0D4JYVISmM80nsmascLDozfM7ao6KpL_phg'.split('').reverse().join('')
-const API_R = 'https://raw.githubusercontent.com/15822578519-dot/ayi-kaoqin/master/sync/records.json'
-const API_W1 = 'https://api.github.com/repos/15822578519-dot/ayi-kaoqin/contents/sync/records.json'
-const API_W2 = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(API_W1)
-const DATA_KEY = 'ayi_kaoqin_records'
+import axios from 'axios'
+import { showToast } from 'vant'
 
-function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
-function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8) }
-function encodeB64(str) { const bytes = new TextEncoder().encode(str); let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b)); return btoa(bin) }
-function decodeB64(str) { const bin = atob(str); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes) }
+const TOKEN_KEY = 'ayi_kaoqin_token'
+export function getToken() { return localStorage.getItem(TOKEN_KEY) || '' }
+export function setToken(t) { localStorage.setItem(TOKEN_KEY, t) }
+export function clearToken() { localStorage.removeItem(TOKEN_KEY) }
 
-let _sha = ''
+const api = axios.create({ baseURL: 'https://ayi-kaoqin-api.15822578519-9d2.workers.dev/api' })
+api.interceptors.request.use((config) => { const t = getToken(); if (t) config.headers.Authorization = `Bearer ${t}`; return config })
+api.interceptors.response.use((res) => res, (err) => {
+  if (err.response?.status === 401 && !(err.config?.url || '').includes('/login')) { clearToken(); location.reload() }
+  showToast((err.response?.data?.error) || '网络错误')
+  return Promise.reject(err)
+})
 
-async function fetchRemote() {
-  const local = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
-  try {
-    // 读取用 raw.githubusercontent.com（国内更快）
-    const res = await fetch(API_R, { cache: 'no-cache' })
-    if (!res.ok) throw new Error('fetch fail')
-    const remote = await res.json()
-    // 合并：remote 和 local 按 id 去重
-    const ids = new Set(remote.map(r => r.id))
-    const merged = [...remote, ...local.filter(r => !ids.has(r.id))]
-    localStorage.setItem(DATA_KEY, JSON.stringify(merged))
-    if (merged.length > remote.length) {
-      // 有本地独有数据，获取SHA后推回
-      try {
-        const sres = await fetch(API_W, { headers: { Authorization: `token ${TOKEN}` } })
-        if (sres.ok) { _sha = (await sres.json()).sha; pushRemote(merged) }
-      } catch {}
-    }
-    return merged
-  } catch {
-    return local
-  }
-}
+export const apiLogin = (code) => api.post('/login', { code }).then(r => r.data)
+export const apiList = (month) => api.get('/records', { params: { month } }).then(r => r.data.list)
+export const apiCreate = (body) => api.post('/records', body).then(r => r.data.record)
+export const apiUpdate = (id, body) => api.put(`/records/${id}`, body).then(r => r.data.record)
+export const apiRemove = (id) => api.delete(`/records/${id}`).then(r => r.data)
+export const apiSummary = (month) => api.get('/summary', { params: { month } }).then(r => r.data)
 
-async function pushRemote(list) {
-  const content = encodeB64(JSON.stringify(list))
-  // 多通道写入：直连失败走备用
-  for (const API_W of [API_W1]) {
-    try {
-      if (!_sha) {
-        const sres = await fetch(API_W, { headers: { Authorization: `token ${TOKEN}` } })
-        if (!sres.ok) continue
-        _sha = (await sres.json()).sha
-      }
-      const body = JSON.stringify({ message: 'sync', content, sha: _sha })
-      const res = await fetch(API_W, { method: 'PUT', headers: { Authorization: `token ${TOKEN}`, 'Content-Type': 'application/json' }, body })
-      if (!res.ok) { _sha = ''; continue }
-      _sha = (await res.json()).content.sha
-      return // 写入成功
-    } catch { _sha = '' }
-  }
-}
-
-export function getToken() { return 'ok' }
-export function setToken() {}
-export function clearToken() {}
-export function apiLogin() { return Promise.resolve({ token: 'ok' }) }
-
-let _loaded = false
-async function ensureLoaded() { if (!_loaded) { await fetchRemote(); _loaded = true } }
-
-export async function apiList(month) {
-  await ensureLoaded()
-  const list = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
-  const result = month ? list.filter(r => (r.date || '').startsWith(month)) : list
-  result.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-  return result
-}
-
-export async function apiCreate(body) {
-  await ensureLoaded()
-  const list = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
-  const status = body.status || 'work'
-  const salary = isFinite(Number(body.salary)) ? round2(Number(body.salary)) : (status === 'work' ? 200 : 0)
-  const record = { id: genId(), date: body.date, status, salary, note: typeof body.note === 'string' ? body.note : '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-  list.push(record)
-  localStorage.setItem(DATA_KEY, JSON.stringify(list))
-  pushRemote(list)
-  return record
-}
-
-export async function apiUpdate(id, body) {
-  await ensureLoaded()
-  const list = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
-  const idx = list.findIndex(r => r.id === id)
-  if (idx === -1) throw new Error('记录不存在')
-  const status = body.status || 'work'
-  const salary = isFinite(Number(body.salary)) ? round2(Number(body.salary)) : (status === 'work' ? 200 : 0)
-  list[idx] = { ...list[idx], date: body.date, status, salary, note: typeof body.note === 'string' ? body.note : '', id, updatedAt: new Date().toISOString() }
-  localStorage.setItem(DATA_KEY, JSON.stringify(list))
-  pushRemote(list)
-  return list[idx]
-}
-
-export async function apiRemove(id) {
-  await ensureLoaded()
-  const list = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
-  const next = list.filter(r => r.id !== id)
-  if (next.length === list.length) throw new Error('记录不存在')
-  localStorage.setItem(DATA_KEY, JSON.stringify(next))
-  pushRemote(next)
-  return { ok: true }
-}
-
-export async function apiSummary(month) {
-  await ensureLoaded()
-  const list = month ? (JSON.parse(localStorage.getItem(DATA_KEY) || '[]')).filter(r => (r.date || '').startsWith(month)) : JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
-  const totalSalary = round2(list.reduce((s, r) => s + (Number(r.salary) || 0), 0))
-  const workDays = list.filter(r => (r.status || 'work') === 'work').length
-  const absentDays = list.filter(r => (r.status || 'work') === 'absent').length
-  return { totalSalary, workDays, absentDays, count: list.length }
-}
-
-export default { getToken, setToken, clearToken, apiLogin, apiList, apiCreate, apiUpdate, apiRemove, apiSummary }
+export default api

@@ -1,0 +1,12 @@
+name = "ayi-kaoqin-api"
+main = "index.js"
+compatibility_date = "2024-07-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ayi-kaoqin"
+database_id = "0da7a9c6-d130-4499-bcab-b14ac0c837eb"
+
+[vars]
+ACCESS_CODE = "888888"
+JWT_SECRET = "change-me-to-random-string"
