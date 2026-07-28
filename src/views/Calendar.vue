@@ -61,14 +61,7 @@ const jumpMonth = inject('jumpMonth', ref(''))
 const today = new Date()
 const minDate = new Date(today.getFullYear() - 1, 0, 1)
 const maxDate = new Date(today.getFullYear() + 1, 11, 31)
-
-// 跳转月：统计页点击"查看当月日历"时定位
-function parseMonth(m) {
-  if (!m || !/^\d{4}-\d{2}$/.test(m)) return null
-  const [y, mo] = m.split('-').map(Number)
-  return new Date(y, mo - 1, 1)
-}
-const defaultDate = ref(parseMonth(jumpMonth.value) || today)
+const defaultDate = ref(today)
 const calKey = ref(0)
 const calendarRef = ref(null)
 
@@ -145,33 +138,11 @@ async function onDelete(r) {
 }
 
 // 打开时定位到「今天所在月」与「有记录最近一个月」中更晚的那个，避免从年初往下翻
-function resolveOpenMonth() {
-  const now = new Date()
-  const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  let latest = ''
-  try {
-    const raw = localStorage.getItem('ayi_kaoqin_records')
-    if (raw) {
-      for (const r of JSON.parse(raw)) {
-        if (r.date > latest) latest = r.date
-      }
-    }
-  } catch (e) { /* 忽略 */ }
-  const target = latest && latest.slice(0, 7) > curMonth ? latest.slice(0, 7) : curMonth
-  return `${target}-01`
-}
-
-// 直接定位到今天或最近记录月
-defaultDate.value = new Date(resolveOpenMonth())
-loadMonth(fmt(defaultDate.value).slice(0, 7))
-
-// 页面完全渲染后再滚到正确位置
 onMounted(() => {
-  nextTick(() => {
-    setTimeout(() => {
-      calendarRef.value?.scrollToDate(defaultDate.value)
-    }, 200)
-  })
+  const m = fmt(defaultDate.value).slice(0, 7)
+  loadMonth(m)
+  // key 强制重渲染，保证日历定位到 defaultDate
+  setTimeout(() => { calKey.value++ }, 100)
 })
 
 // 统计页跳转
