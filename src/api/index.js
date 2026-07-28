@@ -2,7 +2,8 @@
 // token 已加密避免 GitHub 扫描，运行时解密
 const E = 'jlwkxebsdwb44FMQOD8\\3]KsZST<7XHmrb9zfyQSxgsPlq5gN<D|dZ9K}dL7<8PPiF8[in];OxN\\TFTW5K8:HDM3LXdeM'
 const TOKEN = E.split('').map(c => String.fromCharCode(c.charCodeAt(0)-3)).join('')
-const API = 'https://api.github.com/repos/15822578519-dot/ayi-kaoqin/contents/sync/records.json'
+const API_R = 'https://raw.githubusercontent.com/15822578519-dot/ayi-kaoqin/master/sync/records.json'
+const API_W = 'https://api.github.com/repos/15822578519-dot/ayi-kaoqin/contents/sync/records.json'
 const DATA_KEY = 'ayi_kaoqin_records'
 
 function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
@@ -15,17 +16,21 @@ let _sha = ''
 async function fetchRemote() {
   const local = JSON.parse(localStorage.getItem(DATA_KEY) || '[]')
   try {
-    const res = await fetch(API, { headers: { Authorization: `token ${TOKEN}`, 'Cache-Control': 'no-cache' } })
-    if (!res.ok) throw new Error('github fetch failed')
-    const d = await res.json()
-    _sha = d.sha
-    const remote = JSON.parse(decodeB64(d.content))
-    // 合并：remote 和 local 按 id 去重，保留全部
+    // 读取用 raw.githubusercontent.com（国内更快）
+    const res = await fetch(API_R, { cache: 'no-cache' })
+    if (!res.ok) throw new Error('fetch fail')
+    const remote = await res.json()
+    // 合并：remote 和 local 按 id 去重
     const ids = new Set(remote.map(r => r.id))
     const merged = [...remote, ...local.filter(r => !ids.has(r.id))]
     localStorage.setItem(DATA_KEY, JSON.stringify(merged))
-    // 如果有本地独有数据，推回 GitHub
-    if (merged.length > remote.length) pushRemote(merged)
+    if (merged.length > remote.length) {
+      // 有本地独有数据，获取SHA后推回
+      try {
+        const sres = await fetch(API_W, { headers: { Authorization: `token ${TOKEN}` } })
+        if (sres.ok) { _sha = (await sres.json()).sha; pushRemote(merged) }
+      } catch {}
+    }
     return merged
   } catch {
     return local
@@ -34,13 +39,17 @@ async function fetchRemote() {
 
 async function pushRemote(list) {
   try {
+    if (!_sha) {
+      const sres = await fetch(API_W, { headers: { Authorization: `token ${TOKEN}` } })
+      if (!sres.ok) return
+      _sha = (await sres.json()).sha
+    }
     const content = encodeB64(JSON.stringify(list))
     const body = JSON.stringify({ message: 'sync', content, sha: _sha })
-    const res = await fetch(API, { method: 'PUT', headers: { Authorization: `token ${TOKEN}`, 'Content-Type': 'application/json' }, body })
-    if (!res.ok) throw new Error('github push failed')
-    const d = await res.json()
-    _sha = d.content.sha
-  } catch { /* 静默 */ }
+    const res = await fetch(API_W, { method: 'PUT', headers: { Authorization: `token ${TOKEN}`, 'Content-Type': 'application/json' }, body })
+    if (!res.ok) return
+    _sha = (await res.json()).content.sha
+  } catch { /* 后台静默 */ }
 }
 
 export function getToken() { return 'ok' }
