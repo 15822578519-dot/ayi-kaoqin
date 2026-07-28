@@ -1,8 +1,8 @@
 <template>
   <div class="calendar-view">
     <van-calendar
+      v-if="calReady"
       ref="calendarRef"
-      :key="calKey"
       :poppable="false"
       :show-confirm="false"
       :min-date="minDate"
@@ -62,7 +62,7 @@ const today = new Date()
 const minDate = new Date(today.getFullYear() - 1, 0, 1)
 const maxDate = new Date(today.getFullYear() + 1, 11, 31)
 const defaultDate = ref(today)
-const calKey = ref(0)
+const calReady = ref(false)
 const calendarRef = ref(null)
 
 const recordsByDate = ref({})
@@ -141,8 +141,7 @@ async function onDelete(r) {
 onMounted(() => {
   const m = fmt(defaultDate.value).slice(0, 7)
   loadMonth(m)
-  // key 强制重渲染，保证日历定位到 defaultDate
-  setTimeout(() => { calKey.value++ }, 100)
+  nextTick(() => { calReady.value = true })
 })
 
 // 统计页跳转
