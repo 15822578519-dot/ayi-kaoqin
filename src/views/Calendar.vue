@@ -65,6 +65,12 @@ const defaultDate = ref(today)
 const calReady = ref(false)
 const calendarRef = ref(null)
 
+function parseMonth(m) {
+  if (!m || !/^\d{4}-\d{2}$/.test(m)) return null
+  const [y, mo] = m.split('-').map(Number)
+  return new Date(y, mo - 1, 1)
+}
+
 const recordsByDate = ref({})
 const loadedMonths = ref(new Set())
 const showDetail = ref(false)
@@ -141,7 +147,12 @@ async function onDelete(r) {
 onMounted(() => {
   const m = fmt(defaultDate.value).slice(0, 7)
   loadMonth(m)
-  nextTick(() => { calReady.value = true })
+  calReady.value = true
+  nextTick(() => {
+    setTimeout(() => {
+      calendarRef.value?.scrollToDate(defaultDate.value)
+    }, 400)
+  })
 })
 
 // 统计页跳转
@@ -149,10 +160,11 @@ watch(jumpMonth, (m) => {
   const d = parseMonth(m)
   if (d) {
     defaultDate.value = d
-    calKey.value++
     loadedMonths.value = new Set()
     recordsByDate.value = {}
     loadMonth(m)
+    calReady.value = false
+    nextTick(() => { calReady.value = true })
   }
 })
 
