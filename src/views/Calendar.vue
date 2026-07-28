@@ -147,11 +147,17 @@ async function onDelete(r) {
 onMounted(() => {
   const m = fmt(defaultDate.value).slice(0, 7)
   loadMonth(m)
+  defaultDate.value = new Date()
   calReady.value = true
   nextTick(() => {
+    // 手机端渲染慢，需要更长延迟让日历组件完全就绪再滚动
     setTimeout(() => {
       calendarRef.value?.scrollToDate(defaultDate.value)
-    }, 400)
+    }, 1000)
+    // 安全网：1.5秒后再试一次
+    setTimeout(() => {
+      calendarRef.value?.scrollToDate(defaultDate.value)
+    }, 1500)
   })
 })
 
