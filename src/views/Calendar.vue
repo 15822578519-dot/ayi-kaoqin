@@ -145,24 +145,24 @@ async function onDelete(r) {
 }
 
 // 打开时定位到「今天所在月」与「有记录最近一个月」中更晚的那个，避免从年初往下翻
-async function resolveOpenMonth() {
+function resolveOpenMonth() {
   const now = new Date()
   const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   let latest = ''
   try {
-    const list = await apiList('')
-    for (const r of list) {
-      if (r.date > latest) latest = r.date
+    const raw = localStorage.getItem('ayi_kaoqin_records')
+    if (raw) {
+      for (const r of JSON.parse(raw)) {
+        if (r.date > latest) latest = r.date
+      }
     }
-  } catch (e) {
-    /* 忽略，退化为当前月 */
-  }
+  } catch (e) { /* 忽略 */ }
   const target = latest && latest.slice(0, 7) > curMonth ? latest.slice(0, 7) : curMonth
   return `${target}-01`
 }
 
-onMounted(async () => {
-  const d = await resolveOpenMonth()
+onMounted(() => {
+  const d = resolveOpenMonth()
   defaultDate.value = new Date(d)
   loadMonth(d.slice(0, 7))
   nextTick(() => {
