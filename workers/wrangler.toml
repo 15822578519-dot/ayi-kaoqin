@@ -10,3 +10,6 @@ database_id = "0da7a9c6-d130-4499-bcab-b14ac0c837eb"
 [vars]
 ACCESS_CODE = "888888"
 JWT_SECRET = "change-me-to-random-string"
+
+[triggers]
+crons = ["*/5 * * * *"]

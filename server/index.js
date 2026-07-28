@@ -19,8 +19,42 @@ function round2(n) {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }
 
-// 状态默认值：上班 200 元/天，缺勤 0 元/天（均可手动改）
-const DEFAULT_SALARY = { work: 200, absent: 0 }
+// 月基本工资
+const MONTHLY_BASE = 3000
+
+// 公休日（2025-2027）
+const HOLIDAYS = new Set([
+  '2025-01-01','2025-01-28','2025-01-29','2025-01-30','2025-01-31','2025-02-01','2025-02-02','2025-02-03',
+  '2025-04-04','2025-04-05','2025-05-01','2025-05-02','2025-05-03','2025-05-04','2025-05-31','2025-06-01',
+  '2025-10-01','2025-10-02','2025-10-03','2025-10-04','2025-10-05','2025-10-06','2025-10-07',
+  '2026-01-01','2026-01-02','2026-01-03','2026-02-17','2026-02-18','2026-02-19','2026-02-20','2026-02-21','2026-02-22','2026-02-23',
+  '2026-04-04','2026-04-05','2026-05-01','2026-05-02','2026-05-03','2026-05-04','2026-05-05',
+  '2026-06-19','2026-06-20','2026-06-21','2026-09-25','2026-09-26','2026-09-27','2026-10-01','2026-10-02','2026-10-03','2026-10-04','2026-10-05','2026-10-06',
+  '2027-01-01','2027-01-02','2027-01-03','2027-02-06','2027-02-07','2027-02-08','2027-02-09','2027-02-10','2027-02-11','2027-02-12',
+  '2027-04-04','2027-04-05','2027-05-01','2027-05-02','2027-05-03','2027-05-04','2027-05-05',
+  '2027-06-08','2027-06-09','2027-06-10','2027-09-15','2027-09-16','2027-09-17','2027-10-01','2027-10-02','2027-10-03','2027-10-04','2027-10-05','2027-10-06',
+])
+
+function getWorkSalary(dateStr) {
+  const [y, m] = dateStr.slice(0, 7).split('-').map(Number)
+  const daysInMonth = new Date(y, m, 0).getDate()
+  let wd = 0
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(y, m - 1, d).getDay()
+    if (dow === 0 || dow === 6) continue
+    const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    if (HOLIDAYS.has(ds)) continue
+    wd++
+  }
+  return wd > 0 ? Math.round(MONTHLY_BASE / wd) : 0
+}
+
+// 状态默认值：上班根据月工作日动态计算，缺勤 0 元/天
+function getDefaultSalary(dateStr, status) {
+  if (status === 'absent') return 0
+  return getWorkSalary(dateStr)
+}
+
 const VALID_STATUS = new Set(['work', 'absent'])
 
 // 兼容旧数据：缺 status 一律视为上班
@@ -71,7 +105,7 @@ app.post('/api/records', (req, res) => {
   const err = validRecord(req.body)
   if (err) return res.status(400).json({ error: err })
   const status = req.body.status
-  const salary = isFinite(Number(req.body.salary)) ? round2(Number(req.body.salary)) : DEFAULT_SALARY[status]
+  const salary = isFinite(Number(req.body.salary)) ? round2(Number(req.body.salary)) : getDefaultSalary(req.body.date, status)
   const record = {
     id: genId(),
     date: req.body.date,
@@ -89,7 +123,7 @@ app.put('/api/records/:id', (req, res) => {
   const err = validRecord(req.body)
   if (err) return res.status(400).json({ error: err })
   const status = req.body.status
-  const salary = isFinite(Number(req.body.salary)) ? round2(Number(req.body.salary)) : DEFAULT_SALARY[status]
+  const salary = isFinite(Number(req.body.salary)) ? round2(Number(req.body.salary)) : getDefaultSalary(req.body.date, status)
   const patch = {
     date: req.body.date,
     status,

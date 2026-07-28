@@ -1,5 +1,15 @@
 // Cloudflare Worker — 阿姨考勤 API（D1 数据库）
 export default {
+  // 定时 cron：每 5 分钟 ping 沙箱保持在线
+  async scheduled(event, env, ctx) {
+    try {
+      await fetch('https://webview.e2b.bj5.sandbox.cloudstudio.club/?x-cs-sandbox-id=7dd102b210ab4023824e175d39c7f6f3&x-cs-sandbox-port=3000')
+      console.log('keepalive ok')
+    } catch (e) {
+      console.log('keepalive err:', e.message)
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url)
     const path = url.pathname

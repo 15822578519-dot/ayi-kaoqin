@@ -77,8 +77,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { apiCreate, apiUpdate } from '../api/index.js'
 import {
-  DEFAULT_SALARY_WORK,
-  DEFAULT_SALARY_ABSENT,
+  defaultSalary as getDefaultSalary,
   statusMeta,
   formatMoney
 } from '../utils/calc.js'
@@ -97,8 +96,12 @@ const maxDate = new Date(today.getFullYear() + 1, 11, 31)
 
 const form = reactive({ date: '', status: 'work', salary: '', note: '' })
 const defaultSalary = computed(() =>
-  form.status === 'absent' ? DEFAULT_SALARY_ABSENT : DEFAULT_SALARY_WORK
+  getDefaultSalary(form.date || fmtToday(), form.status)
 )
+function fmtToday() {
+  const t = new Date()
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`
+}
 const salaryNum = computed(() => {
   const n = Number(form.salary)
   return isFinite(n) ? n : defaultSalary.value

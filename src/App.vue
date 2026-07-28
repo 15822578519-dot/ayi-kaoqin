@@ -1,6 +1,5 @@
 <template>
-  <Login v-if="!authed" @authed="onAuthed" />
-  <div v-else class="app-root">
+  <div class="app-root">
     <header class="app-header">
       <span class="header-title">{{ title }}</span>
       <van-icon name="qr" class="header-qr" @click="showQR = true" />
@@ -22,16 +21,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, provide } from 'vue'
-import Login from './views/Login.vue'
+import { ref, computed, provide } from 'vue'
 import Calendar from './views/Calendar.vue'
 import Ledger from './views/Ledger.vue'
 import Statistics from './views/Statistics.vue'
 import RecordForm from './views/RecordForm.vue'
 import ShareQR from './views/ShareQR.vue'
-import { getToken, setToken } from './api/index.js'
 
-const authed = ref(false)
 const active = ref('calendar')
 const formVisible = ref(false)
 const editing = ref(null)
@@ -40,8 +36,6 @@ const showQR = ref(false)
 const titleMap = { calendar: '考勤日历', ledger: '考勤台账', statistics: '月度统计' }
 const title = computed(() => titleMap[active.value] || '阿姨考勤')
 
-onMounted(() => { authed.value = !!getToken() })
-function onAuthed(token) { setToken(token); authed.value = true }
 function openAdd(date) { editing.value = null; formDate.value = date || ''; formVisible.value = true }
 function openEdit(record) { editing.value = record; formDate.value = ''; formVisible.value = true }
 function closeForm() { formVisible.value = false; editing.value = null }

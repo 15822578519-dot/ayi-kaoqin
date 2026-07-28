@@ -1,11 +1,29 @@
 [
   {
-    "id": "ms2svpctgdyoej",
-    "date": "2026-07-27",
+    "id": "ms4d3umswc7euy",
+    "date": "2026-02-20",
     "status": "work",
     "salary": 200,
     "note": "",
-    "createdAt": "2026-07-27T05:42:36.317Z",
-    "updatedAt": "2026-07-27T05:42:36.317Z"
+    "createdAt": "2026-07-28T07:56:34.900Z",
+    "updatedAt": "2026-07-28T07:56:34.900Z"
+  },
+  {
+    "id": "ms4dksjln5acip",
+    "date": "2026-07-27",
+    "status": "work",
+    "salary": 130,
+    "note": "",
+    "createdAt": "2026-07-28T08:09:45.345Z",
+    "updatedAt": "2026-07-28T08:09:45.345Z"
+  },
+  {
+    "id": "ms4dqmxaunsem1",
+    "date": "2026-07-28",
+    "status": "absent",
+    "salary": 0,
+    "note": "",
+    "createdAt": "2026-07-28T08:14:17.998Z",
+    "updatedAt": "2026-07-28T08:14:17.998Z"
   }
 ]
