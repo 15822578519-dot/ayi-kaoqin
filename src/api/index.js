@@ -6,7 +6,7 @@ export function getToken() { return localStorage.getItem(TOKEN_KEY) || '' }
 export function setToken(t) { localStorage.setItem(TOKEN_KEY, t) }
 export function clearToken() { localStorage.removeItem(TOKEN_KEY) }
 
-const api = axios.create({ baseURL: 'https://ayi-kaoqin-api.15822578519-9d2.workers.dev/api' })
+const api = axios.create({ baseURL: '/api' })
 api.interceptors.request.use((config) => { const t = getToken(); if (t) config.headers.Authorization = `Bearer ${t}`; return config })
 api.interceptors.response.use((res) => res, (err) => {
   if (err.response?.status === 401 && !(err.config?.url || '').includes('/login')) { clearToken(); location.reload() }
